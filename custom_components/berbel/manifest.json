@@ -1,0 +1,22 @@
+{
+  "domain": "berbel",
+  "name": "Berbel Skyline Edge Base",
+  "version": "0.1.0", 
+  "documentation": "https://github.com/dirkbloessl/berbel-ha",
+  "issue_tracker": "https://github.com/dirkbloessl/berbel-ha/issues",
+  "codeowners": ["@dirkbloessl"],
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "requirements": ["bleak>=0.20.0", "bleak-retry-connector>=3.0.0"],
+  "bluetooth": [
+    {
+      "local_name": "SKE*"
+    },
+    {
+      "local_name": "BERBEL*"
+    }
+  ],
+  "iot_class": "local_push",
+  "integration_type": "device",
+  "quality_scale": "silver"
+} 

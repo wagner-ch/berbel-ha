@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "bluetooth": {
+        "title": "Berbel Skyline Edge Base entdeckt",
+        "description": "Ein Berbel Skyline Edge Base Gerät wurde über Bluetooth entdeckt"
+      },
+      "confirm": {
+        "title": "Berbel Skyline Edge Base hinzufügen",
+        "description": "Möchten Sie das entdeckte Berbel Skyline Edge Base Gerät **{name}** ({address}) hinzufügen?"
+      },
+      "user": {
+        "title": "Berbel Skyline Edge Base hinzufügen",
+        "description": "Wählen Sie Ihr Berbel Skyline Edge Base Gerät aus der Liste der erkannten Geräte aus.",
+        "data": {
+          "address": "Gerät"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen",
+      "unknown": "Unbekannter Fehler aufgetreten"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Stellen Sie sicher, dass das Gerät eingeschaltet und in Reichweite ist.",
+      "no_devices_found": "Keine Berbel Skyline Edge Base Geräte gefunden. Stellen Sie sicher, dass Bluetooth aktiviert ist und das Gerät eingeschaltet ist.",
+      "not_supported": "Dieses Gerät wird nicht unterstützt",
+      "discovery_error": "Fehler bei der Geräteerkennung"
+    }
+  },
+  "entity": {
+    "fan": {
+      "name": "Lüfter"
+    },
+    "light": {
+      "name": "Licht {position}"
+    },
+    "binary_sensor": {
+      "postrun": {
+        "name": "Nachlauf"
+      }
+    }
+  },
+  "device": {
+    "name": "Berbel Skyline Edge Base"
+  }
+} 
