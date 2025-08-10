@@ -13,7 +13,7 @@ UPDATE_INTERVAL: Final = 18
 MANUFACTURER: Final = "Berbel"
 
 # Supported device models (primary target: Skyline Edge Base)
-SUPPORTED_MODELS: Final = ["SKE", "BERBEL"]
+SUPPORTED_MODELS: Final = ["SKE", "BERBEL", "HOOD_PER"]
 
 # Entity suffixes
 FAN_SUFFIX: Final = "Fan"
@@ -23,4 +23,4 @@ SWITCH_POSTRUN_SUFFIX: Final = "Nachlauf"
 
 # Attributes
 ATTR_FAN_POSTRUN: Final = "postrun_active"
-ATTR_COLOR_TEMP_KELVIN: Final = "color_temp_kelvin" 
+ATTR_COLOR_TEMP_KELVIN: Final = "color_temp_kelvin"
