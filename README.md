@@ -1,5 +1,7 @@
 # Berbel Skyline Edge Base - Home Assistant Integration
 
+Note: Experimental legacy support scaffolding for older Berbel models (HOOD_PER) has been added. See "Legacy (older models)" section below.
+
 A Home Assistant integration for the **Berbel Skyline Edge Base** range hood with Bluetooth Low Energy (BLE) connectivity.
 
 > **⚠️ Device Compatibility**: This integration is specifically developed and tested for the **Berbel Skyline Edge Base** model. Other Berbel range hoods may work but are not tested or officially supported.
@@ -180,6 +182,36 @@ logger:
   logs:
     custom_components.berbel: debug
 ```
+
+## 🧩 Legacy (older models)
+
+Some older Berbel hoods (e.g., advertising as HOOD_PER) use a different BLE protocol than the Skyline Edge Base. A decompiled vendor app (see template/sources/com/cybob/wescoremote/utils/Hood.java) shows:
+
+- Different GATT Services/Characteristics:
+  - Service (legacy): 52017769-797c-4cdd-9ff7-628b4eae5c9f
+  - Service (2018 variant): eb0ebe81-7dd6-489c-b0fc-2ede8e9c37fe
+  - RX characteristic (write ASCII): 58f49d41-c83e-4e5d-afe6-f3257c56effa
+  - RX characteristic (2018): 00a12d11-2172-4aae-869e-777e169ea742
+  - TX characteristic: 204c70ff-3227-4c46-a862-59d9f201b272
+  - Config characteristic: 51a6bb05-25ce-40a4-b184-c91afbb4327e
+- Commands are URL-encoded ASCII strings prefixed by a 4-digit PIN (default 1234), e.g. 1234 + cmd_off / cmd_luft1 / cmd_nachlauf etc.
+- State is primarily broadcast via manufacturer data in BLE advertisements (not via the same GATT characteristics this integration uses).
+
+What’s implemented now
+- Detection scaffolding: The integration can detect legacy devices by name/UUIDs and will avoid using the modern binary protocol on them.
+- Constants for the legacy UUIDs and default PIN are included in custom_components/berbel/berbel_ble/const.py.
+
+What’s still needed to fully support legacy models
+1) Command mapping
+   - Map Home Assistant actions (fan levels, lights, postrun) to the app’s cmd_* ASCII commands (see template R.java for identifiers).
+   - Write URL-encoded bytes of "PIN + command" to the RX characteristic.
+2) State parsing
+   - Implement a passive advertisement parser to decode manufacturer data like Hood.java does (extract fan level, flags for lights, postrun, etc.).
+   - Update BerbelBluetoothDeviceParser to accept that data shape.
+3) Optional pairing PIN setting
+   - Add a config option to override the default PIN (1234).
+
+Until 1) and 2) are implemented, legacy devices will show a clear log message and won’t attempt to control via the modern protocol (to prevent errors).
 
 ## 🔄 Version History
 

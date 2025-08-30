@@ -130,3 +130,5 @@ dmypy.json
 # Test files
 test_*
 tests/__pycache__/ 
+
+template/
