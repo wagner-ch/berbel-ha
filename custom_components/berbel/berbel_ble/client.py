@@ -201,6 +201,29 @@ class BerbelBluetoothDeviceData:
                 "Status reading via GATT is not supported yet in this integration."
             )
 
+        # Legacy devices do not require a GATT connection to read status; avoid connecting
+        if self._legacy_mode:
+            device = BerbelDevice(name=ble_device.name or "", address=ble_device.address)
+            try:
+                # Populate from manufacturer data only
+                adv = None
+                if hasattr(ble_device, "metadata") and isinstance(ble_device.metadata, dict):
+                    mfd = ble_device.metadata.get("manufacturer_data") or {}
+                    if isinstance(mfd, dict) and len(mfd) > 0:
+                        adv = next(iter(mfd.values()))
+                data = parse_legacy_manufacturer_data(adv) if adv is not None else None
+                if data:
+                    for k, v in data.items():
+                        setattr(device, k, v)
+                    self.logger.info("BLE-Client: Legacy status parsed from advertisements (no GATT connection).")
+                    return device
+                else:
+                    self.logger.warning("BLE-Client: Legacy manufacturer data not available; returning defaults.")
+                    return device
+            finally:
+                # Ensure no pooled connection remains
+                await self._disconnect_internal()
+
         last_exception = None
         for attempt in range(1, max_retries + 1):
             try:

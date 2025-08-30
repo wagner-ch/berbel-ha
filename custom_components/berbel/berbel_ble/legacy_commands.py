@@ -45,6 +45,12 @@ class LegacyCommandSender:
         payload = self._encode(command)
         _LOGGER.debug("Legacy RX write: uuid=%s, payload=%s", uuid, payload)
         await client.write_gatt_char(uuid, payload, response=True)
+        # Immediately disconnect after a short delay similar to Java app behavior
+        try:
+            await asyncio.sleep(0.2)
+            await client.disconnect()
+        except Exception:
+            pass
 
     # High-level mappings (string values taken from decompiled R.java identifiers)
     # We do not know exact string content; the device only needs the identifier text.

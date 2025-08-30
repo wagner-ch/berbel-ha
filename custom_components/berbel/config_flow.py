@@ -44,7 +44,7 @@ class BerbelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="not_supported")
 
         self._discovered_device = discovery_info
-        
+
         # Set the title for the flow
         self.context["title_placeholders"] = {
             "name": device_name,
@@ -62,7 +62,7 @@ class BerbelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(format_mac(address))
             self._abort_if_unique_id_configured()
             discovery_info = self._discovered_devices[address]
-            
+
             # Try to connect to the device to validate it's working
             try:
                 await self._test_connection(discovery_info)
@@ -142,22 +142,42 @@ class BerbelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Check if the discovered device is a supported Berbel device."""
         if discovery_info.name is None:
             return False
-            
+
         name_upper = discovery_info.name.upper()
         return any(model in name_upper for model in SUPPORTED_MODELS)
 
     async def _test_connection(self, discovery_info: BluetoothServiceInfoBleak) -> None:
-        """Test the connection to the device."""
+        """Test the connection to the device.
+        For legacy models (e.g., HOOD_PER), skip opening a GATT connection here and
+        validate based on advertisement data to avoid exhausting BLE slots.
+        """
         ble_device = discovery_info.device
         client = BerbelBluetoothDeviceData(_LOGGER)
-        
-        try:
-            # Try to connect and read basic device info
-            device = await client.update_device(ble_device)
-            _LOGGER.debug("Successfully connected to device: %s", device)
-        except BleakError as err:
-            _LOGGER.error("BLE connection failed: %s", err)
-            raise
-        except Exception as err:
-            _LOGGER.error("Unexpected error during connection test: %s", err)
-            raise 
+
+        # Detect legacy via name/uuids to avoid connecting during config flow
+        name_upper = (discovery_info.name or "").upper()
+        is_legacy = "HOOD_PER" in name_upper
+        if not is_legacy:
+            # Try to connect and read basic device info for modern models
+            try:
+                device = await client.update_device(ble_device)
+                _LOGGER.debug("Successfully connected to device: %s", device)
+                return
+            except BleakError as err:
+                _LOGGER.error("BLE connection failed: %s", err)
+                raise
+            except Exception as err:
+                _LOGGER.error("Unexpected error during connection test: %s", err)
+                raise
+        else:
+            # For legacy, ensure we have manufacturer data in the advertisement
+            mfd = ble_device.metadata.get("manufacturer_data") if hasattr(ble_device, "metadata") else None
+            if isinstance(mfd, dict) and mfd:
+                _LOGGER.debug("Legacy device detected; manufacturer data present. Skipping GATT connect test.")
+                return
+            # If no manufacturer data, we still avoid connecting; log a warning.
+            _LOGGER.warning(
+                "Legacy device detected but no manufacturer data present in discovery. "
+                "Proceeding without active connection test."
+            )
+            return
