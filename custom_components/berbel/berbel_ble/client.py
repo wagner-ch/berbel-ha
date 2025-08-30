@@ -13,6 +13,7 @@ from .models import BerbelDevice
 from .parser import BerbelBluetoothDeviceParser
 from .legacy_parser import parse_legacy_manufacturer_data
 from .legacy_commands import LegacyCommandSender
+from .legacy_state import read_legacy_state_via_gatt
 from .commands import (
     create_light_brightness_command_from_percentage,
     validate_command_length,
@@ -205,7 +206,7 @@ class BerbelBluetoothDeviceData:
         if self._legacy_mode:
             device = BerbelDevice(name=ble_device.name or "", address=ble_device.address)
             try:
-                # Populate from manufacturer data only
+                # Populate from manufacturer data first
                 adv = None
                 if hasattr(ble_device, "metadata") and isinstance(ble_device.metadata, dict):
                     mfd = ble_device.metadata.get("manufacturer_data") or {}
@@ -218,11 +219,23 @@ class BerbelBluetoothDeviceData:
                     self.logger.info("BLE-Client: Legacy status parsed from advertisements (no GATT connection).")
                     return device
                 else:
-                    self.logger.warning("BLE-Client: Legacy manufacturer data not available; returning defaults.")
+                    # Try a short-lived GATT read on TX/CF as a fallback
+                    try:
+                        async with self._connection_lock:
+                            client = await self._ensure_connection(ble_device)
+                            gatt_data = await read_legacy_state_via_gatt(client)
+                    finally:
+                        await self._disconnect_internal()
+                    if gatt_data:
+                        for k, v in gatt_data.items():
+                            setattr(device, k, v)
+                        self.logger.info("BLE-Client: Legacy status read via GATT TX/CF.")
+                        return device
+                    self.logger.warning("BLE-Client: Legacy state unavailable (no adv, GATT fallback failed). Returning defaults.")
                     return device
             finally:
-                # Ensure no pooled connection remains
-                await self._disconnect_internal()
+                # Ensure no pooled connection remains if anything left
+                pass
 
         last_exception = None
         for attempt in range(1, max_retries + 1):
