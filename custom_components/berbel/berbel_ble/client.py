@@ -337,6 +337,21 @@ class BerbelBluetoothDeviceData:
 
     async def set_light_top_on(self, ble_device: BLEDevice, on: bool = True) -> None:
         """Turns the top light on or off while maintaining bottom light state."""
+        # Legacy: write ASCII command and disconnect quickly; avoid status read
+        if self._legacy_mode:
+            async with self._connection_lock:
+                try:
+                    client = await self._ensure_connection(ble_device)
+                    sender = LegacyCommandSender()
+                    if on:
+                        await sender.lights_on(client)
+                    else:
+                        await sender.lights_off(client)
+                    return
+                except Exception as e:
+                    self.logger.error(f"BLE-Client: Top light (legacy) switching failed: {e}")
+                    await self._disconnect_internal()
+                    raise
         # Fast method: Read current status and then command in one connection
         async with self._connection_lock:
             try:
@@ -368,6 +383,20 @@ class BerbelBluetoothDeviceData:
 
     async def set_light_bottom_on(self, ble_device: BLEDevice, on: bool = True) -> None:
         """Turns the bottom light on or off while maintaining top light state."""
+        if self._legacy_mode:
+            async with self._connection_lock:
+                try:
+                    client = await self._ensure_connection(ble_device)
+                    sender = LegacyCommandSender()
+                    if on:
+                        await sender.lights_on(client)
+                    else:
+                        await sender.lights_off(client)
+                    return
+                except Exception as e:
+                    self.logger.error(f"BLE-Client: Bottom light (legacy) switching failed: {e}")
+                    await self._disconnect_internal()
+                    raise
         async with self._connection_lock:
             try:
                 client = await self._ensure_connection(ble_device)
@@ -424,6 +453,22 @@ class BerbelBluetoothDeviceData:
         if not 0 <= brightness_percentage <= 100:
             raise ValueError("brightness_percentage must be between 0 and 100")
 
+        # Legacy: map brightness to on/off only (no dimming via ASCII known)
+        if self._legacy_mode:
+            async with self._connection_lock:
+                try:
+                    client = await self._ensure_connection(ble_device)
+                    sender = LegacyCommandSender()
+                    if brightness_percentage > 0:
+                        await sender.lights_on(client)
+                    else:
+                        await sender.lights_off(client)
+                    return
+                except Exception as e:
+                    self.logger.error(f"BLE-Client: Setting top brightness (legacy) failed: {e}")
+                    await self._disconnect_internal()
+                    raise
+
         # Optimized version: Read status and command in one connection
         async with self._connection_lock:
             try:
@@ -459,6 +504,22 @@ class BerbelBluetoothDeviceData:
 
         if not 0 <= brightness_percentage <= 100:
             raise ValueError("brightness_percentage must be between 0 and 100")
+
+        # Legacy: map brightness to on/off only
+        if self._legacy_mode:
+            async with self._connection_lock:
+                try:
+                    client = await self._ensure_connection(ble_device)
+                    sender = LegacyCommandSender()
+                    if brightness_percentage > 0:
+                        await sender.lights_on(client)
+                    else:
+                        await sender.lights_off(client)
+                    return
+                except Exception as e:
+                    self.logger.error(f"BLE-Client: Setting bottom brightness (legacy) failed: {e}")
+                    await self._disconnect_internal()
+                    raise
 
         async with self._connection_lock:
             try:
